@@ -1,1 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bike Rental</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f6f6f6; }
+    header { padding: 16px; background: #111; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+    select { padding: 6px; border-radius: 6px; }
+    .container { padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .card { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.08); display: flex; flex-direction: column; }
+    .card img { width: 100%; height: 180px; object-fit: cover; }
+    .card-body { padding: 12px; flex: 1; }
+    .title { font-size: 18px; font-weight: bold; margin-bottom: 6px; }
+    .price { font-size: 16px; margin-bottom: 6px; }
+    .status.free { color: green; font-weight: bold; }
+    .status.booked { color: red; font-weight: bold; }
+    .btn { margin: 12px; padding: 10px; background: #000; color: #fff; border: none; border-radius: 10px; font-size: 16px; cursor: pointer; }
+    .btn:disabled { background: #999; }
+  </style>
+</head>
+<body>
+<header>
+  <div>🛵 Bike Rental</div>
+  <select id="lang" onchange="render()">
+    <option value="en">EN</option>
+    <option value="ru">RU</option>
+    <option value="th">TH</option>
+    <option value="cn">中文</option>
+  </select>
+</header>
+<div class="container" id="list"></div>
+<script>
+const translations = {
+  en: { day: "THB / day", book: "Book", free: "Free", booked: "Booked" },
+  ru: { day: "THB / день", book: "Забронировать", free: "Свободен", booked: "Занят" },
+  th: { day: "บาท / วัน", book: "จอง", free: "ว่าง", booked: "ไม่ว่าง" },
+  cn: { day: "泰铢 / 天", book: "预订", free: "可用", booked: "已预订" }
+};
 
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQkiyZdafVIMIamvuz4dP7PvJwfuzIYAw0k1_NjhQYbpFNCz7jfb0xn3blCawJrIfZuUgC4beUQd8vP/pub?output=csv";
+let bikes = [];
+
+async function loadBikes() {
+  const res = await fetch(SHEET_URL);
+  const text = await res.text();
+  bikes = parseCSV(text);
+  render();
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].replace(/"/g, '').split(',');
+  return lines.slice(1).map(line => {
+    if (!line.trim()) return null;
+    const values = line.replace(/"/g, '').split(',');
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = values[i] || '');
+    return {
+      name: `${obj.brand} ${obj.model}`,
+      price: obj.price_day_thb,
+      status: obj.status.toLowerCase(),
+      img: obj.image_url || `https://via.placeholder.com/400x300?text=${encodeURIComponent(obj.brand + ' ' + obj.model)}`
+    };
+  }).filter(b => b !== null);
+}
+
+function render() {
+  const lang = document.getElementById('lang').value;
+  const t = translations[lang];
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  bikes.forEach(bike => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <img src="${bike.img}" />
+      <div class="card-body">
+        <div class="title">${bike.name}</div>
+        <div class="price">${bike.price} ${t.day}</div>
+        <div class="status ${bike.status}">${bike.status === 'free' ? t.free : t.booked}</div>
+      </div>
+      <button class="btn" ${bike.status !== 'free' ? 'disabled' : ''}>
+        ${t.book}
+      </button>
+    `;
+    list.appendChild(card);
+  });
+}
+
+loadBikes();
+</script>
+</body>
+</html>
