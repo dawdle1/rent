@@ -10,11 +10,12 @@ header { background:#111; color:#fff; padding:15px; text-align:center; }
 .container { max-width:1200px; margin:auto; padding:15px; }
 .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap:15px; }
 .card { background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,.1); }
-.card img { width:100%; height:180px; object-fit:cover; }
+.card img { width:100%; height:180px; object-fit:cover; cursor:pointer; }
 .card-body { padding:10px; }
 .price { font-weight:bold; }
 .status.free { color:green; }
 .status.booked { color:red; }
+
 .slider { position:relative; }
 .slider button {
   position:absolute; top:50%; transform:translateY(-50%);
@@ -23,6 +24,41 @@ header { background:#111; color:#fff; padding:15px; text-align:center; }
 }
 .slider .prev { left:5px; }
 .slider .next { right:5px; }
+
+/* Lightbox */
+.lightbox {
+  position:fixed;
+  top:0; left:0; right:0; bottom:0;
+  background:rgba(0,0,0,0.9);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:1000;
+}
+.lightbox.show { display:flex; }
+.lightbox img {
+  max-width:95%;
+  max-height:95%;
+}
+.lightbox .close {
+  position:absolute;
+  top:20px; right:25px;
+  font-size:30px;
+  color:#fff;
+  cursor:pointer;
+}
+.lightbox .nav {
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:40px;
+  color:#fff;
+  cursor:pointer;
+  padding:10px;
+  user-select:none;
+}
+.lightbox .prev { left:20px; }
+.lightbox .next { right:20px; }
 </style>
 </head>
 <body>
@@ -35,9 +71,20 @@ header { background:#111; color:#fff; padding:15px; text-align:center; }
   <div id="grid" class="grid"></div>
 </div>
 
+<!-- Lightbox -->
+<div id="lightbox" class="lightbox">
+  <span class="close" onclick="closeLightbox()">×</span>
+  <span class="nav prev" onclick="lbPrev()">‹</span>
+  <img id="lightbox-img" src="" />
+  <span class="nav next" onclick="lbNext()">›</span>
+</div>
+
 <script>
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQkiyZdafVIMIamvuz4dP7PvJwfuzIYAw0k1_NjhQYbpFNCz7jfb0xn3blCawJrIfZuUgC4beUQd8vP/pub?gid=510031858&single=true&output=csv";
 const IMAGE_PATH = "Images/";
+
+let lbImages = [];
+let lbIndex = 0;
 
 function parseCSV(text) {
   const rows = [];
@@ -89,6 +136,7 @@ function render(bikes){
 
     const img = document.createElement("img");
     img.src = images[0];
+    img.onclick = () => openLightbox(images, idx);
     slider.appendChild(img);
 
     if(images.length > 1){
@@ -121,6 +169,35 @@ function render(bikes){
     grid.appendChild(card);
   });
 }
+
+// Lightbox logic
+function openLightbox(images, index){
+  lbImages = images;
+  lbIndex = index;
+  document.getElementById("lightbox-img").src = lbImages[lbIndex];
+  document.getElementById("lightbox").classList.add("show");
+}
+function closeLightbox(){
+  document.getElementById("lightbox").classList.remove("show");
+}
+function lbPrev(){
+  lbIndex = (lbIndex-1+lbImages.length)%lbImages.length;
+  document.getElementById("lightbox-img").src = lbImages[lbIndex];
+}
+function lbNext(){
+  lbIndex = (lbIndex+1)%lbImages.length;
+  document.getElementById("lightbox-img").src = lbImages[lbIndex];
+}
+
+// Swipe for mobile
+let startX = 0;
+const lb = document.getElementById("lightbox");
+lb.addEventListener("touchstart", e => startX = e.touches[0].clientX);
+lb.addEventListener("touchend", e => {
+  const endX = e.changedTouches[0].clientX;
+  if(endX - startX > 50) lbPrev();
+  if(startX - endX > 50) lbNext();
+});
 </script>
 
 </body>
