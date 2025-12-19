@@ -1,207 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Bike Rental</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <style>
-    body { margin:0; font-family: Arial, sans-serif; background:#f5f5f5; }
-    header { background:#111; color:#fff; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; }
-    .lang button { margin-left:6px; padding:6px 10px; cursor:pointer; }
-    .container { padding:16px; display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px; }
-
-    .card { background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,.15); display:flex; flex-direction:column; }
-    .card img { width:100%; height:180px; object-fit:cover; }
-    .card .content { padding:12px; flex:1; }
-    .card h3 { margin:0 0 6px; font-size:18px; }
-    .price { font-weight:bold; margin:6px 0; }
-    .status.free { color:green; }
-    .status.booked { color:red; }
-
-    .card button { margin:12px; padding:10px; border:none; background:#0a7cff; color:#fff; border-radius:6px; cursor:pointer; }
-
-    /* slider */
-    .slider { position:relative; }
-    .slider button {
-      position:absolute; top:50%; transform:translateY(-50%);
-      background:rgba(0,0,0,.5); color:#fff; border:none; padding:6px 10px; cursor:pointer;
-    }
-    .slider .prev { left:6px; }
-    .slider .next { right:6px; }
-
-    /* modal */
-    .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); align-items:center; justify-content:center; }
-    .modal-content {
-      background:#fff; padding:20px; border-radius:8px; width:90%; max-width:400px;
-    }
-    .modal-content h3 { margin-top:0; }
-    .modal-content input, .modal-content textarea {
-      width:100%; padding:8px; margin-bottom:10px;
-    }
-    .modal-content button { padding:10px; width:100%; background:#0a7cff; color:#fff; border:none; border-radius:6px; }
-    .close { float:right; cursor:pointer; font-weight:bold; }
-  </style>
+<meta charset="UTF-8" />
+<title>Bike Rental</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+body { font-family: Arial, sans-serif; margin: 0; background:#f5f5f5; }
+header { background:#111; color:#fff; padding:15px; text-align:center; }
+.container { max-width:1200px; margin:auto; padding:15px; }
+.grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap:15px; }
+.card { background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,.1); }
+.card img { width:100%; height:180px; object-fit:cover; }
+.card-body { padding:10px; }
+.price { font-weight:bold; }
+.status.free { color:green; }
+.status.booked { color:red; }
+.slider { position:relative; }
+.slider button {
+  position:absolute; top:50%; transform:translateY(-50%);
+  background:rgba(0,0,0,.5); color:#fff; border:none; font-size:18px;
+  padding:5px 10px; cursor:pointer;
+}
+.slider .prev { left:5px; }
+.slider .next { right:5px; }
+</style>
 </head>
 <body>
 
 <header>
-  <div id="title">Bike Rental</div>
-  <div class="lang">
-    <button onclick="setLang('en')">EN</button>
-    <button onclick="setLang('ru')">RU</button>
-    <button onclick="setLang('th')">TH</button>
-    <button onclick="setLang('zh')">中文</button>
-  </div>
+  <h1>Bike Rental</h1>
 </header>
 
-<div class="container" id="bikes"></div>
-
-<!-- Modal -->
-<div class="modal" id="modal">
-  <div class="modal-content">
-    <span class="close" onclick="closeModal()">✖</span>
-    <h3 id="modalTitle">Book bike</h3>
-    <input id="name" placeholder="Name" />
-    <input id="phone" placeholder="Phone / WhatsApp" />
-    <input id="start" type="date" />
-    <input id="end" type="date" />
-    <textarea id="notes" placeholder="Notes"></textarea>
-    <button onclick="submitBooking()">Submit</button>
-    <div id="msg"></div>
-  </div>
+<div class="container">
+  <div id="grid" class="grid"></div>
 </div>
 
 <script>
-/* 🔗 CSV из твоего Google Sheets */
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQkiyZdafVIMIamvuz4dP7PvJwfuzIYAw0k1_NjhQYbpFNCz7jfb0xn3blCawJrIfZuUgC4beUQd8vP/pub?gid=510031858&single=true&output=csv";
+const IMAGE_PATH = "Images/";
 
-/* 🤖 Telegram */
-const BOT_TOKEN = "PASTE_BOT_TOKEN_HERE";
-const CHAT_ID = "PASTE_CHAT_ID_HERE";
-
-let lang = 'en';
-let bikesData = [];
-let selectedBike = null;
-
-const texts = {
-  en: { title:"Bike Rental", book:"Book", free:"Free", booked:"Booked" },
-  ru: { title:"Аренда байков", book:"Забронировать", free:"Свободен", booked:"Занят" },
-  th: { title:"เช่ามอเตอร์ไซค์", book:"จอง", free:"ว่าง", booked:"ไม่ว่าง" },
-  zh: { title:"摩托车租赁", book:"预订", free:"空闲", booked:"已预订" }
-};
-
-function setLang(l){
-  lang = l;
-  document.getElementById('title').innerText = texts[l].title;
-  render();
-}
-
-/* simple CSV parser with quotes */
-function parseCSV(text){
+function parseCSV(text) {
   const rows = [];
-  let row = [], cur = '', inside = false;
-  for(let c of text){
-    if(c === '"' ) inside = !inside;
-    else if(c === ',' && !inside){ row.push(cur); cur=''; }
-    else if(c === '\n' && !inside){ row.push(cur); rows.push(row); row=[]; cur=''; }
-    else cur += c;
+  let row = [], cell = "", inside = false;
+  for (let c of text) {
+    if (c === '"') inside = !inside;
+    else if (c === ',' && !inside) { row.push(cell); cell = ""; }
+    else if ((c === '\n' || c === '\r') && !inside) {
+      if (cell || row.length) { row.push(cell); rows.push(row); }
+      row = []; cell = "";
+    } else cell += c;
   }
-  if(cur) { row.push(cur); rows.push(row); }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
   return rows;
 }
 
-fetch(CSV_URL).then(r=>r.text()).then(t=>{
-  const rows = parseCSV(t).filter(r=>r.length>3);
-  const headers = rows.shift();
-  bikesData = rows.map(r=>{
-    const o={};
-    headers.forEach((h,i)=>o[h.trim()] = (r[i]||'').replace(/^"|"$/g,''));
-    return o;
-  });
-  render();
-});
+fetch(CSV_URL)
+  .then(r => r.text())
+  .then(text => {
+    const data = parseCSV(text);
+    const headers = data[0];
+    const rows = data.slice(1);
 
-function render(){
-  const box = document.getElementById('bikes');
-  box.innerHTML = '';
-  bikesData.forEach((b,i)=>{
-    const images = (b.image_urls || b.image_url || '').split(',').filter(x=>x);
+    const bikes = rows.map(r => {
+      const obj = {};
+      headers.forEach((h,i) => obj[h.trim()] = (r[i]||"").trim());
+      return obj;
+    });
+
+    render(bikes);
+  });
+
+function render(bikes){
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+
+  bikes.forEach(b => {
+    const images = b.image_urls
+      ? b.image_urls.split("|").map(x => IMAGE_PATH + x.trim())
+      : ["https://via.placeholder.com/400x300?text=No+Image"];
+
     let idx = 0;
 
-    const img = document.createElement('img');
-    img.src = images[0] || 'https://via.placeholder.com/400x300?text=No+Image';
+    const card = document.createElement("div");
+    card.className = "card";
 
-    const slider = document.createElement('div');
-    slider.className = 'slider';
+    const slider = document.createElement("div");
+    slider.className = "slider";
+
+    const img = document.createElement("img");
+    img.src = images[0];
     slider.appendChild(img);
 
-    if(images.length>1){
-      const prev = document.createElement('button');
-      prev.className='prev'; prev.innerText='<';
-      prev.onclick=()=>{ idx=(idx-1+images.length)%images.length; img.src=images[idx]; };
-      const next = document.createElement('button');
-      next.className='next'; next.innerText='>';
-      next.onclick=()=>{ idx=(idx+1)%images.length; img.src=images[idx]; };
-      slider.appendChild(prev); slider.appendChild(next);
+    if(images.length > 1){
+      const prev = document.createElement("button");
+      prev.className = "prev";
+      prev.textContent = "<";
+      prev.onclick = ()=>{ idx = (idx-1+images.length)%images.length; img.src = images[idx]; };
+
+      const next = document.createElement("button");
+      next.className = "next";
+      next.textContent = ">";
+      next.onclick = ()=>{ idx = (idx+1)%images.length; img.src = images[idx]; };
+
+      slider.appendChild(prev);
+      slider.appendChild(next);
     }
 
-    const card = document.createElement('div');
-    card.className='card';
     card.appendChild(slider);
 
-    const c = document.createElement('div');
-    c.className='content';
-    c.innerHTML = `
-      <h3>${b.brand || ''} ${b.model || ''}</h3>
-      <div class="price">${b.price_day_thb || ''} THB / day</div>
-      <div class="status ${b.status}">${b.status === 'booked' ? texts[lang].booked : texts[lang].free}</div>
+    const body = document.createElement("div");
+    body.className = "card-body";
+    body.innerHTML = `
+      <div><b>${b.brand} ${b.model}</b> ${b.year || ""}</div>
+      <div class="price">Day: ${b.price_day_thb || "-"} THB</div>
+      <div class="price">Month: ${b.price_month_thb || "-"} THB</div>
+      <div class="status ${b.status}">Status: ${b.status}</div>
     `;
-    card.appendChild(c);
+    card.appendChild(body);
 
-    const btn = document.createElement('button');
-    btn.innerText = texts[lang].book;
-    btn.onclick = ()=>openModal(b);
-    card.appendChild(btn);
-
-    box.appendChild(card);
+    grid.appendChild(card);
   });
 }
-
-function openModal(b){
-  selectedBike = b;
-  document.getElementById('modalTitle').innerText = `${texts[lang].book}: ${b.brand} ${b.model}`;
-  document.getElementById('modal').style.display='flex';
-}
-function closeModal(){
-  document.getElementById('modal').style.display='none';
-}
-
-function submitBooking(){
-  const name = nameEl.value;
-  const phone = phoneEl.value;
-  const start = startEl.value;
-  const end = endEl.value;
-  const notes = notesEl.value;
-
-  const text = `🚲 New booking\nBike: ${selectedBike.brand} ${selectedBike.model}\nName: ${name}\nPhone: ${phone}\nDates: ${start} - ${end}\nNotes: ${notes}`;
-
-  fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({ chat_id: CHAT_ID, text })
-  }).then(()=>{
-    msg.innerText = "Sent!";
-    setTimeout(closeModal,1500);
-  }).catch(()=>{
-    msg.innerText = "Error sending";
-  });
-}
-
-const nameEl = document.getElementById('name');
-const phoneEl = document.getElementById('phone');
-const startEl = document.getElementById('start');
-const endEl = document.getElementById('end');
-const notesEl = document.getElementById('notes');
 </script>
 
 </body>
