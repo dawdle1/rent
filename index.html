@@ -111,8 +111,8 @@ button.book-btn {
     <div class="modal-close" onclick="closeBooking()">✕</div>
     <h3>Book bike</h3>
     <input id="bk_name" placeholder="Your name" />
-    <input id="bk_contact" placeholder="Phone / WhatsApp / Telegram" />
-    <input id="bk_dates" placeholder="Rental dates" />
+    <input id="bk_contact" placeholder="Phone (e.g. +66812345678)" />
+    <input id="bk_dates" type="date" />
     <input id="bk_bike" placeholder="Bike" readonly />
     <button onclick="sendBooking()">Send booking</button>
     <p id="bk_status"></p>
@@ -223,74 +223,4 @@ function render(bikes){
 // Lightbox
 function openLightbox(images, index){
   lbImages = images;
-  lbIndex = index;
-  document.getElementById("lightbox-img").src = lbImages[lbIndex];
-  document.getElementById("lightbox").classList.add("show");
-  document.body.classList.add("no-scroll");
-}
-function closeLightbox(){
-  document.getElementById("lightbox").classList.remove("show");
-  document.body.classList.remove("no-scroll");
-}
-function lbPrev(){
-  lbIndex = (lbIndex-1+lbImages.length)%lbImages.length;
-  document.getElementById("lightbox-img").src = lbImages[lbIndex];
-}
-function lbNext(){
-  lbIndex = (lbIndex+1)%lbImages.length;
-  document.getElementById("lightbox-img").src = lbImages[lbIndex];
-}
-
-// Swipe
-let startX = 0;
-const lb = document.getElementById("lightbox");
-lb.addEventListener("touchstart", e => startX = e.touches[0].clientX);
-lb.addEventListener("touchend", e => {
-  const endX = e.changedTouches[0].clientX;
-  if(endX - startX > 50) lbPrev();
-  if(startX - endX > 50) lbNext();
-});
-
-// Booking modal
-function openBooking(bike){
-  document.getElementById("bk_bike").value = bike;
-  document.getElementById("bk_status").innerText = "";
-  document.getElementById("bookingModal").classList.add("show");
-  document.body.classList.add("no-scroll");
-}
-function closeBooking(){
-  document.getElementById("bookingModal").classList.remove("show");
-  document.body.classList.remove("no-scroll");
-}
-
-function sendBooking(){
-  const name = document.getElementById("bk_name").value;
-  const contact = document.getElementById("bk_contact").value;
-  const dates = document.getElementById("bk_dates").value;
-  const bike = document.getElementById("bk_bike").value;
-
-  if(!name || !contact || !dates){
-    document.getElementById("bk_status").innerText = "❗ Fill all fields";
-    return;
-  }
-
-  const text = `🚲 New booking!\n\n👤 Name: ${name}\n📞 Contact: ${contact}\n📅 Dates: ${dates}\n🏍 Bike: ${bike}`;
-
-  fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ chat_id: CHAT_ID, text })
-  })
-  .then(r => r.json())
-  .then(() => {
-    document.getElementById("bk_status").innerText = "✅ Sent!";
-    setTimeout(closeBooking, 1500);
-  })
-  .catch(() => {
-    document.getElementById("bk_status").innerText = "❌ Error";
-  });
-}
-</script>
-
-</body>
-</html>
+  lbIndex =
