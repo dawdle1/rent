@@ -24,25 +24,12 @@ button.book-btn {
   border-radius:4px;
 }
 
-.slider { position:relative; }
-.slider button {
-  position:absolute; top:50%; transform:translateY(-50%);
-  background:rgba(0,0,0,.5); color:#fff; border:none; font-size:18px;
-  padding:5px 10px; cursor:pointer;
-}
-.slider .prev { left:5px; }
-.slider .next { right:5px; }
-
 /* Lightbox */
 .lightbox {
-  position:fixed;
-  top:0; left:0; right:0; bottom:0;
+  position:fixed; inset:0;
   background:rgba(0,0,0,0.9);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:1000;
-  touch-action: pan-x;
+  display:none; align-items:center; justify-content:center;
+  z-index:1000; touch-action: pan-x;
 }
 .lightbox.show { display:flex; }
 .lightbox img { max-width:95%; max-height:95%; }
@@ -51,22 +38,18 @@ button.book-btn {
   font-size:30px; color:#fff; cursor:pointer;
 }
 .lightbox .nav {
-  position:absolute; top:50%;
-  transform:translateY(-50%);
+  position:absolute; top:50%; transform:translateY(-50%);
   font-size:40px; color:#fff; cursor:pointer;
   padding:10px; user-select:none;
 }
 .lightbox .prev { left:20px; }
 .lightbox .next { right:20px; }
 
-/* Booking modal */
+/* Modal */
 .modal {
-  position:fixed;
-  top:0; left:0; right:0; bottom:0;
+  position:fixed; inset:0;
   background:rgba(0,0,0,.6);
-  display:none;
-  align-items:center;
-  justify-content:center;
+  display:none; align-items:center; justify-content:center;
   z-index:1100;
 }
 .modal.show { display:flex; }
@@ -74,7 +57,6 @@ button.book-btn {
   background:#fff; padding:20px;
   border-radius:8px; width:90%; max-width:400px;
 }
-.modal-content h3 { margin-top:0; }
 .modal-content input {
   width:100%; padding:8px; margin-bottom:10px;
 }
@@ -82,16 +64,12 @@ button.book-btn {
   width:100%; padding:10px;
   background:#111; color:#fff; border:none; cursor:pointer;
 }
-.modal-close {
-  text-align:right; cursor:pointer; color:#999;
-}
+.modal-close { text-align:right; cursor:pointer; color:#999; }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>Bike Rental</h1>
-</header>
+<header><h1>Bike Rental</h1></header>
 
 <div class="container">
   <div id="grid" class="grid"></div>
@@ -105,15 +83,21 @@ button.book-btn {
   <span class="nav next" onclick="lbNext()">›</span>
 </div>
 
-<!-- Booking modal -->
+<!-- Booking -->
 <div id="bookingModal" class="modal">
   <div class="modal-content">
     <div class="modal-close" onclick="closeBooking()">✕</div>
     <h3>Book bike</h3>
-    <input id="bk_name" placeholder="Your name" />
-    <input id="bk_contact" placeholder="Phone / WhatsApp / Telegram" />
-    <input id="bk_dates" placeholder="DD/MM/YYYY - DD/MM/YYYY" />
-    <input id="bk_bike" placeholder="Bike" readonly />
+
+    <input id="bk_name" placeholder="Your name" inputmode="text" />
+    <input id="bk_contact" placeholder="+66XXXXXXXXX" type="tel" />
+    
+    <label>From:</label>
+    <input id="bk_from" type="date" />
+    <label>To:</label>
+    <input id="bk_to" type="date" />
+
+    <input id="bk_bike" readonly />
     <button onclick="sendBooking()">Send booking</button>
     <p id="bk_status"></p>
   </div>
@@ -123,12 +107,10 @@ button.book-btn {
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQkiyZdafVIMIamvuz4dP7PvJwfuzIYAw0k1_NjhQYbpFNCz7jfb0xn3blCawJrIfZuUgC4beUQd8vP/pub?gid=510031858&single=true&output=csv";
 const IMAGE_PATH = "Images/";
 
-// Telegram
 const TOKEN = "8569147206:AAFvjIvwo6PbwrGkrGjnXArUVqxtoF9G5E4";
 const CHAT_ID = "166993928";
 
-let lbImages = [];
-let lbIndex = 0;
+let lbImages = [], lbIndex = 0;
 
 function parseCSV(text) {
   const rows = [];
@@ -145,95 +127,51 @@ function parseCSV(text) {
   return rows;
 }
 
-fetch(CSV_URL)
-  .then(r => r.text())
-  .then(text => {
-    const data = parseCSV(text);
-    const headers = data[0];
-    const rows = data.slice(1);
-
-    const bikes = rows.map(r => {
-      const obj = {};
-      headers.forEach((h,i) => obj[h.trim()] = (r[i]||"").trim());
-      return obj;
-    });
-
-    render(bikes);
+fetch(CSV_URL).then(r=>r.text()).then(text=>{
+  const data = parseCSV(text);
+  const headers = data[0];
+  const rows = data.slice(1);
+  const bikes = rows.map(r=>{
+    const o={}; headers.forEach((h,i)=>o[h.trim()]=(r[i]||"").trim()); return o;
   });
+  render(bikes);
+});
 
 function render(bikes){
   const grid = document.getElementById("grid");
-  grid.innerHTML = "";
+  grid.innerHTML="";
+  bikes.forEach(b=>{
+    let images = b.image_urls
+      ? b.image_urls.split("|").map(x=>IMAGE_PATH+x.trim()).filter(x=>x)
+      : ["https://via.placeholder.com/400x300?text=No+Image"];
 
-  bikes.forEach(b => {
+    let idx=0;
+    const card=document.createElement("div"); card.className="card";
+    const img=document.createElement("img"); img.src=images[0];
+    img.onclick=()=>openLightbox(images,idx);
+    card.appendChild(img);
 
-    let images = [];
-    if (b.image_urls) {
-      images = b.image_urls
-        .split("|")
-        .map(x => x.trim())
-        .filter(x => x)
-        .map(x => IMAGE_PATH + x);
-    }
-    if (!images.length) {
-      images = ["https://via.placeholder.com/400x300?text=No+Image"];
-    }
-
-    let idx = 0;
-
-    const card = document.createElement("div");
-    card.className = "card";
-
-    const slider = document.createElement("div");
-    slider.className = "slider";
-
-    const img = document.createElement("img");
-    img.src = images[0];
-    img.onclick = () => openLightbox(images, idx);
-    slider.appendChild(img);
-
-    if(images.length > 1){
-      const prev = document.createElement("button");
-      prev.className = "prev";
-      prev.textContent = "<";
-      prev.onclick = ()=>{ idx = (idx-1+images.length)%images.length; img.src = images[idx]; };
-
-      const next = document.createElement("button");
-      next.className = "next";
-      next.textContent = ">";
-      next.onclick = ()=>{ idx = (idx+1)%images.length; img.src = images[idx]; };
-
-      slider.appendChild(prev);
-      slider.appendChild(next);
-    }
-
-    card.appendChild(slider);
-
-    const body = document.createElement("div");
-    body.className = "card-body";
-    body.innerHTML = `
-      <div><b>${b.brand} ${b.model}</b> ${b.year || ""}</div>
-      <div class="price">Day: ${b.price_day_thb || "-"} THB</div>
-      <div class="price">Month: ${b.price_month_thb || "-"} THB</div>
-      <div class="status ${b.status}">Status: ${b.status}</div>
+    const body=document.createElement("div");
+    body.className="card-body";
+    body.innerHTML=`
+      <div><b>${b.brand} ${b.model}</b> ${b.year||""}</div>
+      <div class="price">Day: ${b.price_day_thb||"-"} THB</div>
+      <div class="price">Month: ${b.price_month_thb||"-"} THB</div>
     `;
-
-    const btn = document.createElement("button");
-    btn.className = "book-btn";
-    btn.textContent = "Book";
-    btn.onclick = () => openBooking(`${b.brand} ${b.model}`);
-
+    const btn=document.createElement("button");
+    btn.className="book-btn"; btn.textContent="Book";
+    btn.onclick=()=>openBooking(`${b.brand} ${b.model}`);
     body.appendChild(btn);
+
     card.appendChild(body);
     grid.appendChild(card);
   });
 }
 
 // Lightbox
-function openLightbox(images, index){
-  lbImages = images;
-  lbIndex = index;
-  document.getElementById("lightbox-img").src = lbImages[lbIndex];
+function openLightbox(images,i){
+  lbImages=images; lbIndex=i;
+  document.getElementById("lightbox-img").src=lbImages[lbIndex];
   document.getElementById("lightbox").classList.add("show");
   document.body.classList.add("no-scroll");
 }
@@ -241,65 +179,60 @@ function closeLightbox(){
   document.getElementById("lightbox").classList.remove("show");
   document.body.classList.remove("no-scroll");
 }
-function lbPrev(){
-  lbIndex = (lbIndex-1+lbImages.length)%lbImages.length;
-  document.getElementById("lightbox-img").src = lbImages[lbIndex];
-}
-function lbNext(){
-  lbIndex = (lbIndex+1)%lbImages.length;
-  document.getElementById("lightbox-img").src = lbImages[lbIndex];
-}
+function lbPrev(){ lbIndex=(lbIndex-1+lbImages.length)%lbImages.length;
+  document.getElementById("lightbox-img").src=lbImages[lbIndex]; }
+function lbNext(){ lbIndex=(lbIndex+1)%lbImages.length;
+  document.getElementById("lightbox-img").src=lbImages[lbIndex]; }
 
-// Swipe
-let startX = 0;
-const lb = document.getElementById("lightbox");
-lb.addEventListener("touchstart", e => startX = e.touches[0].clientX);
-lb.addEventListener("touchend", e => {
-  const endX = e.changedTouches[0].clientX;
-  if(endX - startX > 50) lbPrev();
-  if(startX - endX > 50) lbNext();
-});
-
-// Booking modal
+// Booking
 function openBooking(bike){
-  document.getElementById("bk_bike").value = bike;
-  document.getElementById("bk_status").innerText = "";
-  document.getElementById("bookingModal").classList.add("show");
+  bk_name.value=""; bk_contact.value="";
+  bk_from.value=""; bk_to.value="";
+  bk_bike.value=bike; bk_status.innerText="";
+  bookingModal.classList.add("show");
   document.body.classList.add("no-scroll");
 }
 function closeBooking(){
-  document.getElementById("bookingModal").classList.remove("show");
+  bookingModal.classList.remove("show");
   document.body.classList.remove("no-scroll");
 }
 
-function sendBooking(){
-  const name = document.getElementById("bk_name").value.trim();
-  const contact = document.getElementById("bk_contact").value.trim();
-  const dates = document.getElementById("bk_dates").value.trim();
-  const bike = document.getElementById("bk_bike").value;
+// Validation
+bk_name.addEventListener("input", e=>{
+  e.target.value = e.target.value.replace(/[0-9]/g,"");
+});
+bk_contact.addEventListener("input", e=>{
+  e.target.value = e.target.value.replace(/[^0-9+]/g,"");
+});
 
-  if(!name || !contact || !dates){
-    document.getElementById("bk_status").innerText = "❗ Fill all fields";
+function formatDate(v){
+  const [y,m,d]=v.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+function sendBooking(){
+  const name=bk_name.value.trim();
+  const contact=bk_contact.value.trim();
+  const from=bk_from.value;
+  const to=bk_to.value;
+  const bike=bk_bike.value;
+
+  if(!name || !contact || !from || !to){
+    bk_status.innerText="❗ Fill all fields";
     return;
   }
 
-  const text = `🚲 New booking!\n\n👤 Name: ${name}\n📞 Contact: ${contact}\n📅 Dates: ${dates}\n🏍 Bike: ${bike}`;
+  const text = `🚲 New booking!\n\n👤 Name: ${name}\n📞 Contact: ${contact}\n📅 Dates: ${formatDate(from)} - ${formatDate(to)}\n🏍 Bike: ${bike}`;
 
-  fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ chat_id: CHAT_ID, text })
-  })
-  .then(r => r.json())
-  .then(() => {
-    document.getElementById("bk_status").innerText = "✅ Sent!";
-    setTimeout(closeBooking, 1500);
-  })
-  .catch(() => {
-    document.getElementById("bk_status").innerText = "❌ Error";
-  });
+  fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({chat_id:CHAT_ID,text})
+  }).then(()=>{ bk_status.innerText="✅ Sent!"; setTimeout(closeBooking,1500); })
+    .catch(()=>bk_status.innerText="❌ Error");
 }
 </script>
 
 </body>
 </html>
+
