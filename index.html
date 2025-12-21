@@ -115,8 +115,8 @@ button.book-btn {
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQkiyZdafVIMIamvuz4dP7PvJwfuzIYAw0k1_NjhQYbpFNCz7jfb0xn3blCawJrIfZuUgC4beUQd8vP/pub?gid=510031858&single=true&output=csv";
 const IMAGE_PATH = "Images/";
 
-// 👉 URL твоего Apps Script
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyVqVRp08WpAi17Bg6xt0Lc9a4USjoZhuT6jE4_Oy2F-OFKephk1EcKEdJgSlMcuPBXrA/exec";
+// ✅ ТВОЙ АКТУАЛЬНЫЙ Apps Script URL
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzXMd7bGEedg8tVp4TMWRKLif_NmSjuRpJXGwdx7tBGEeU13PSzVQV53QCuIaaPXdwt_g/exec";
 
 let lbImages = [], lbIndex = 0;
 
@@ -127,8 +127,10 @@ function parseCSV(text) {
   for(let c of text){
     if(c=='"') inside=!inside;
     else if(c==',' && !inside){ row.push(cell); cell=""; }
-    else if((c=='\n'||c=='\r') && !inside){ if(cell||row.length){ row.push(cell); rows.push(row); } row=[]; cell=""; }
-    else cell+=c;
+    else if((c=='\n'||c=='\r') && !inside){
+      if(cell||row.length){ row.push(cell); rows.push(row); }
+      row=[]; cell="";
+    } else cell+=c;
   }
   if(cell||row.length) rows.push(row);
   return rows;
@@ -138,7 +140,11 @@ fetch(CSV_URL).then(r=>r.text()).then(text=>{
   const data = parseCSV(text);
   const headers = data[0];
   const rows = data.slice(1);
-  const bikes = rows.map(r=>{ const obj={}; headers.forEach((h,i)=>obj[h.trim()]=(r[i]||"").trim()); return obj; });
+  const bikes = rows.map(r=>{
+    const obj={};
+    headers.forEach((h,i)=>obj[h.trim()]=(r[i]||"").trim());
+    return obj;
+  });
   render(bikes);
 });
 
@@ -146,7 +152,9 @@ function render(bikes){
   const grid = document.getElementById("grid");
   grid.innerHTML="";
   bikes.forEach(b=>{
-    const images = b.image_urls ? b.image_urls.split("|").map(x=>IMAGE_PATH+x.trim()) : ["https://via.placeholder.com/400x300?text=No+Image"];
+    const images = b.image_urls
+      ? b.image_urls.split("|").map(x=>IMAGE_PATH+x.trim())
+      : ["https://via.placeholder.com/400x300?text=No+Image"];
     let idx=0;
 
     const card=document.createElement("div");
@@ -191,18 +199,45 @@ function render(bikes){
 }
 
 // Lightbox
-function openLightbox(images,index){ lbImages=images; lbIndex=index; document.getElementById("lightbox-img").src=lbImages[lbIndex]; document.getElementById("lightbox").classList.add("show"); document.body.classList.add("no-scroll"); }
-function closeLightbox(){ document.getElementById("lightbox").classList.remove("show"); document.body.classList.remove("no-scroll"); }
-function lbPrev(){ lbIndex=(lbIndex-1+lbImages.length)%lbImages.length; document.getElementById("lightbox-img").src=lbImages[lbIndex]; }
-function lbNext(){ lbIndex=(lbIndex+lbImages.length)%lbImages.length; document.getElementById("lightbox-img").src=lbImages[lbIndex]; }
+function openLightbox(images,index){
+  lbImages=images; lbIndex=index;
+  document.getElementById("lightbox-img").src=lbImages[lbIndex];
+  document.getElementById("lightbox").classList.add("show");
+  document.body.classList.add("no-scroll");
+}
+function closeLightbox(){
+  document.getElementById("lightbox").classList.remove("show");
+  document.body.classList.remove("no-scroll");
+}
+function lbPrev(){
+  lbIndex=(lbIndex-1+lbImages.length)%lbImages.length;
+  document.getElementById("lightbox-img").src=lbImages[lbIndex];
+}
+function lbNext(){
+  lbIndex=(lbIndex+1)%lbImages.length;
+  document.getElementById("lightbox-img").src=lbImages[lbIndex];
+}
+
 let startX=0;
 const lb=document.getElementById("lightbox");
 lb.addEventListener("touchstart",e=>startX=e.touches[0].clientX);
-lb.addEventListener("touchend",e=>{ const endX=e.changedTouches[0].clientX; if(endX-startX>50) lbPrev(); if(startX-endX>50) lbNext(); });
+lb.addEventListener("touchend",e=>{
+  const endX=e.changedTouches[0].clientX;
+  if(endX-startX>50) lbPrev();
+  if(startX-endX>50) lbNext();
+});
 
 // Booking modal
-function openBooking(bike){ document.getElementById("bk_bike").value=bike; document.getElementById("bk_status").innerText=""; document.getElementById("bookingModal").classList.add("show"); document.body.classList.add("no-scroll"); }
-function closeBooking(){ document.getElementById("bookingModal").classList.remove("show"); document.body.classList.remove("no-scroll"); }
+function openBooking(bike){
+  document.getElementById("bk_bike").value=bike;
+  document.getElementById("bk_status").innerText="";
+  document.getElementById("bookingModal").classList.add("show");
+  document.body.classList.add("no-scroll");
+}
+function closeBooking(){
+  document.getElementById("bookingModal").classList.remove("show");
+  document.body.classList.remove("no-scroll");
+}
 
 // Litepicker
 const picker = new Litepicker({
@@ -229,17 +264,14 @@ function sendBooking(){
     document.getElementById("bk_status").innerText="❗ Fill all fields";
     return;
   }
-
   if(!/^[a-zA-Z\s]+$/.test(name)){
     document.getElementById("bk_status").innerText="❗ Invalid name";
     return;
   }
-
   if(!/^\+\d{7,15}$/.test(contact)){
     document.getElementById("bk_status").innerText="❗ Invalid phone";
     return;
   }
-
   if(!/^\d{2}\/\d{2}\/\d{4} - \d{2}\/\d{2}\/\d{4}$/.test(dates)){
     document.getElementById("bk_status").innerText="❗ Invalid date";
     return;
@@ -250,10 +282,7 @@ function sendBooking(){
   fetch(SCRIPT_URL,{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      action:"new_booking",
-      name, contact, dates, bike
-    })
+    body:JSON.stringify({ name, contact, dates, bike })
   })
   .then(()=>{ document.getElementById("bk_status").innerText="✅ Sent!"; setTimeout(closeBooking,1500); })
   .catch(()=>{ document.getElementById("bk_status").innerText="❌ Error"; });
