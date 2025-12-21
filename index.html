@@ -224,10 +224,11 @@ const bikes = rows.map(r => {
   headers.forEach((h,i)=> obj[h.trim()] = (r[i]||"").trim());
   return obj;
 })
-// 👉 берем только реальные байки, у которых есть id
-.filter(b => b.id && b.id !== "");
+// 👉 берем только реальные байки: есть картинки
+.filter(b => b.image_urls && b.image_urls.trim() !== "");
 
 render(bikes);
+
 
   });
 
