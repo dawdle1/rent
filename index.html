@@ -219,13 +219,16 @@ fetch(CSV_URL)
     const headers = data[0];
     const rows = data.slice(1);
 
-    const bikes = rows.map(r => {
-      const obj = {};
-      headers.forEach((h,i)=> obj[h.trim()] = (r[i]||"").trim());
-      return obj;
-    });
+const bikes = rows.map(r => {
+  const obj = {};
+  headers.forEach((h,i)=> obj[h.trim()] = (r[i]||"").trim());
+  return obj;
+})
+// 👉 берем только реальные байки, у которых есть id
+.filter(b => b.id && b.id !== "");
 
-    render(bikes);
+render(bikes);
+
   });
 
 // ===== RENDER =====
