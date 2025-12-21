@@ -279,11 +279,15 @@ function sendBooking(){
 
   document.getElementById("bk_status").innerText="⏳ Sending...";
 
-  fetch(SCRIPT_URL,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({ name, contact, dates, bike })
-  })
+  fetch(SCRIPT_URL, {
+  method: "POST",
+  mode: "no-cors",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ name, contact, dates, bike })
+})
+
   .then(()=>{ document.getElementById("bk_status").innerText="✅ Sent!"; setTimeout(closeBooking,1500); })
   .catch(()=>{ document.getElementById("bk_status").innerText="❌ Error"; });
 }
