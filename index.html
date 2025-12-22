@@ -391,15 +391,23 @@ function sendBooking(){
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, contact, dates, bike })
   })
+  .then(async res => {
+    const text = await res.text();
+    let json = {};
+    try { json = JSON.parse(text); } catch(e){}
+
+    if (!res.ok || json.status === "error") {
+      throw new Error(json.message || text || "Server error");
+    }
+
+    return json;
+  })
   .then(() => {
     status.innerText = "✅ Sent!";
     setTimeout(closeBooking, 1500);
   })
-  .catch(() => {
-    status.innerText = "❌ Error";
+  .catch(err => {
+    console.error(err);
+    status.innerText = "❌ Error: " + err.message;
   });
 }
-</script>
-
-</body>
-</html>
