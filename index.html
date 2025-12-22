@@ -372,21 +372,18 @@ function sendBooking(){
   status.innerText = "⏳ Sending...";
 
   fetch(SCRIPT_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, contact, dates, bike })
-  })
-  .then(res => {
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    return res.text();
-  })
-  .then(text => {
-    console.log("Server response:", text);
-    status.innerText = "✅ Sent!";
-    setTimeout(closeBooking, 1500);
-  })
-  .catch(err => {
-    console.error("Fetch error:", err);
-    status.innerText = "❌ Error: " + err.message;
-  });
-}
+  method: "POST",
+  mode: "cors",
+  headers: { "Content-Type": "text/plain" },
+  body: JSON.stringify({ name, contact, dates, bike })
+})
+.then(r => r.text())
+.then(t => {
+  console.log("Response:", t);
+  status.innerText = "✅ Sent!";
+  setTimeout(closeBooking, 1500);
+})
+.catch(err => {
+  console.error(err);
+  status.innerText = "❌ Error";
+});
