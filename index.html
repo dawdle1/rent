@@ -369,21 +369,6 @@ function sendBooking(){
     return;
   }
 
-  if(!/^[a-zA-Z\s]+$/.test(name)){
-    status.innerText = "❗ Invalid name";
-    return;
-  }
-
-  if(!/^\+\d{7,15}$/.test(contact)){
-    status.innerText = "❗ Invalid phone";
-    return;
-  }
-
-  if(!/^\d{2}\/\d{2}\/\d{4} - \d{2}\/\d{2}\/\d{4}$/.test(dates)){
-    status.innerText = "❗ Invalid date";
-    return;
-  }
-
   status.innerText = "⏳ Sending...";
 
   fetch(SCRIPT_URL, {
@@ -391,23 +376,17 @@ function sendBooking(){
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, contact, dates, bike })
   })
-  .then(async res => {
-    const text = await res.text();
-    let json = {};
-    try { json = JSON.parse(text); } catch(e){}
-
-    if (!res.ok || json.status === "error") {
-      throw new Error(json.message || text || "Server error");
-    }
-
-    return json;
+  .then(res => {
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return res.text();
   })
-  .then(() => {
+  .then(text => {
+    console.log("Server response:", text);
     status.innerText = "✅ Sent!";
     setTimeout(closeBooking, 1500);
   })
   .catch(err => {
-    console.error(err);
+    console.error("Fetch error:", err);
     status.innerText = "❌ Error: " + err.message;
   });
 }
